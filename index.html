@@ -1105,11 +1105,14 @@
 
         // --- Game Controls ---
         function handleRestartClick() {
+            console.log("Restart button clicked. Game status:", gameStatus);
             if (isLocalGame) {
                 setupLocalGame(); // For local, just restart
-            } else if (gameStatus.startsWith('remote_')) {
+            } else if (gameStatus.startsWith('remote_') || gameStatus === 'win' || gameStatus === 'draw' || gameStatus === 'opponent_left') {
+                console.log("checked game status, Sending restart request to opponent.");
                 if (gameStatus === 'win' || gameStatus === 'draw') {
                     if (realtimeChannel && realtimeChannel.state === 'joined') {
+                        console.log("Sending restart request to opponent.");
                         // Generate a random starting player that will be used by both clients
                         const startingPlayer = Math.random() < 0.5 ? 1 : 2;
                         realtimeChannel.send({
@@ -1118,6 +1121,7 @@
                             payload: { startingPlayer: startingPlayer }
                         }).then(() => {
                             showMessage("请求已发送 (Request Sent)", "已发送重新开始请求。游戏将自动重置。(Restart request sent. The game will reset automatically.)");
+                            console.log("Sent restart_game event with startingPlayer:", startingPlayer);
                             // Restart the game locally immediately with the same starting player
                             resetGameForRemote(startingPlayer);
                         }).catch(err => {
@@ -1142,6 +1146,7 @@
                     handleBackToMenu(); // Go back to menu
                 }
             } else { // e.g. initial, emoji_selection, remote_setup
+                console.log("Game status is not remote_playing or remote_waiting. Cannot restart.");
                 handleBackToMenu(); // Default to back to menu if state is unclear for restart
             }
         }
