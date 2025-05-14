@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏 (Gomoku Game)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@^2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff;
+            /* Light blue background */
+            color: #334155;
+            /* Slate-700 text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        .game-container {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 800px;
+            /* Max width for larger screens */
+        }
+
+        canvas {
+            background-color: #fde68a;
+            /* Light yellow board */
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: block;
+            margin: 1rem auto;
+            max-width: 100%;
+            height: auto;
+            /* Maintain aspect ratio */
+        }
+
+        .control-panel,
+        .status-panel,
+        .mode-selection,
+        .emoji-selection,
+        .remote-setup {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #f1f5f9;
+            /* Slate-100 */
+            border-radius: 0.5rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Press Start 2P', cursive;
+            color: #1e3a8a;
+            /* Indigo-800 */
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem !important;
+            margin: 1rem 0 !important;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        button,
+        input[type="text"] {
+            font-family: 'Press Start 2P', cursive;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            margin: 0.25rem;
+        }
+
+        #confirmEmojiBtn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.25rem;
+            margin: 1rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0;
+            background-color: #4a90e2;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 4px 4px 0 #000;
+            transform: translate(0, 0);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #confirmEmojiBtn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #confirmEmojiBtn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        button {
+            background-color: #3b82f6;
+            /* Blue-500 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+        }
+
+        button:hover {
+            background-color: #2563eb;
+            /* Blue-600 */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.6);
+        }
+
+        button:disabled {
+            background-color: #9ca3af;
+            /* Gray-400 */
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #restartGameBtn,
+        #backToMenuBtn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+            margin: 1rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0;
+            background-color: #4a90e2;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 4px 4px 0 #000;
+            transform: translate(0, 0);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #restartGameBtn:hover,
+        #backToMenuBtn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #restartGameBtn:active,
+        #backToMenuBtn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        /* Add pixel art style for mode selection buttons */
+        #localModeBtn,
+        #remoteModeBtn {
+            margin: 1rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0;
+            background-color: #4a90e2;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 4px 4px 0 #000;
+            transform: translate(0, 0);
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
+        }
+
+        #localModeBtn:hover,
+        #remoteModeBtn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #localModeBtn:active,
+        #remoteModeBtn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        #createRoomBtn,
+        #joinRoomBtn {
+            margin: 1rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0;
+            background-color: #4a90e2;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 4px 4px 0 #000;
+            transform: translate(0, 0);
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.5 rem;
+        }
+
+        #createRoomBtn:hover,
+        #joinRoomBtn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #createRoomBtn:active,
+        #joinRoomBtn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        input[type="text"] {
+            background-color: #ffffff;
+            border: 2px solid #cbd5e1;
+            /* Slate-300 */
+            color: #334155;
+            width: calc(100% - 1.5rem);
+            /* Adjust for padding */
+        }
+
+        input[type="text"]:focus {
+            border-color: #3b82f6;
+            /* Blue-500 */
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        .emoji-btn {
+            font-size: 1.5rem;
+            padding: 0.5rem;
+            font-family: 'Press Start 2P', cursive;
+            background-color: #4a90e2;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 4px 4px 0 #000;
+            border: none;
+            border-radius: 0;
+            transform: translate(0, 0);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .emoji-btn.selected {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .emoji-btn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .emoji-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .turn-indicator span {
+            display: inline-block;
+            width: 30px;
+            /* Fixed width for emoji */
+            text-align: center;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.1rem;
+            }
+
+            button,
+            input[type="text"] {
+                font-size: 0.75rem;
+                padding: 0.6rem 1rem;
+            }
+
+            .control-panel,
+            .status-panel,
+            .mode-selection,
+            .emoji-selection,
+            .remote-setup {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>🦊GOMOKU🐷</h1>
+
+        <div id="modeSelection" class="mode-selection text-center">
+            <h2>Select Mode</h2>
+            <button id="localModeBtn">Local Mode</button>
+            <button id="remoteModeBtn">Remote Mode</button>
+        </div>
+
+        <div id="emojiSelection" class="emoji-selection hidden text-center">
+            <h2>Select Your Piece</h2>
+            <div>
+                <h3 id="player1EmojiHeader">Player 1: <span id="p1SelectedEmojiDisplay"></span></h3>
+                <div id="player1Emojis" class="flex justify-center space-x-2 my-2"></div>
+            </div>
+            <div id="player2EmojiContainer">
+                <h3 id="player2EmojiHeader">Player 2: <span id="p2SelectedEmojiDisplay"></span></h3>
+                <div id="player2Emojis" class="flex justify-center space-x-2 my-2"></div>
+            </div>
+            <button id="confirmEmojiBtn" disabled>START</button>
+        </div>
+
+        <div id="remoteSetup" class="remote-setup hidden">
+            <h2>Remote Setup</h2>
+            <input type="text" id="roomIdInput" placeholder="Enter Room ID" class="block w-full mb-2">
+            <div class="text-center">
+                <button id="createRoomBtn">Create Room</button>
+                <button id="joinRoomBtn">Join Room</button>
+            </div>
+            <p id="roomIdDisplay" class="mt-2 text-center font-semibold"></p>
+        </div>
+
+        <div id="gameArea" class="hidden">
+            <div class="status-panel text-center">
+                <h2 id="statusMessage">状态信息 (Status)</h2>
+                <p id="turnIndicator" class="turn-indicator text-xl font-semibold">轮到: <span></span> (Turn)</p>
+            </div>
+            <canvas id="gomokuBoard"></canvas>
+            <div class="control-panel text-center">
+                <button id="restartGameBtn">RESTART</button>
+                <button id="backToMenuBtn">BACK</button>
+            </div>
+        </div>
+        <div id="messageBox"
+            class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                <h3 id="messageBoxTitle" class="text-xl font-bold mb-4 text-gray-800">通知</h3>
+                <p id="messageBoxText" class="text-gray-600 mb-6"></p>
+                <button id="messageBoxOkBtn"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Configuration ---
+        // TODO: 请替换为你自己的 Supabase URL 和 Anon Key
+        // REPLACE WITH YOUR SUPABASE URL AND ANON KEY
+        const SUPABASE_URL = 'https://wxpkgxrsprligtmxgfqi.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4cGtneHJzcHJsaWd0bXhnZnFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMjIyNjMsImV4cCI6MjA2MjY5ODI2M30.oz1EaxuRPsab47YiE78VGdJXJwNaBiu16t4cFFO49NM';
+
+        // --- Global State ---
+        const BOARD_SIZE = 19;
+        const CELL_SIZE = 30; // For canvas drawing
+        const DOT_RADIUS = 3; // For star points
+        const STONE_RADIUS_FACTOR = 0.4; // Factor of CELL_SIZE for stone radius
+
+        let board = []; // 2D array: 0: empty, 1: player1, 2: player2
+        let currentPlayer = 1;
+        let playerEmojis = { 1: '🐷', 2: '🦊' }; // Default, will be updated by selection
+        let gameStatus = 'initial'; // 'initial', 'emoji_selection', 'local_playing', 'remote_setup', 'remote_waiting', 'remote_playing', 'win', 'draw', 'opponent_left', 'error'
+        let selectedEmojis = { p1: null, p2: null };
+        let myPlayerId = null; // For remote mode: 1 or 2
+        let remoteRoomId = null;
+        let supabaseClient = null;
+        let realtimeChannel = null;
+        let isLocalGame = true; // Flag to track current game type
+
+        // --- UI Element References ---
+        const canvas = document.getElementById('gomokuBoard');
+        const ctx = canvas.getContext('2d');
+
+        const modeSelectionDiv = document.getElementById('modeSelection');
+        const localModeBtn = document.getElementById('localModeBtn');
+        const remoteModeBtn = document.getElementById('remoteModeBtn');
+
+        const emojiSelectionDiv = document.getElementById('emojiSelection');
+        const player1EmojisDiv = document.getElementById('player1Emojis');
+        const player2EmojisDiv = document.getElementById('player2Emojis');
+        const p1SelectedEmojiDisplay = document.getElementById('p1SelectedEmojiDisplay');
+        const p2SelectedEmojiDisplay = document.getElementById('p2SelectedEmojiDisplay');
+        const player2EmojiContainer = document.getElementById('player2EmojiContainer');
+        const player1EmojiHeader = document.getElementById('player1EmojiHeader');
+        const player2EmojiHeader = document.getElementById('player2EmojiHeader');
+        const confirmEmojiBtn = document.getElementById('confirmEmojiBtn');
+
+        const remoteSetupDiv = document.getElementById('remoteSetup');
+        const roomIdInput = document.getElementById('roomIdInput');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+
+        const gameAreaDiv = document.getElementById('gameArea');
+        const statusMessageEl = document.getElementById('statusMessage');
+        const turnIndicatorEl = document.getElementById('turnIndicator');
+        const restartGameBtn = document.getElementById('restartGameBtn');
+        const backToMenuBtn = document.getElementById('backToMenuBtn');
+
+        const messageBox = document.getElementById('messageBox');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxText = document.getElementById('messageBoxText');
+        const messageBoxOkBtn = document.getElementById('messageBoxOkBtn');
+
+        const PRESET_EMOJIS = ['🦊', '🐷', '🐱', '🐶', '🐰'];
+
+        // --- Initialization ---
+        function initializeApp() {
+            canvas.width = BOARD_SIZE * CELL_SIZE;
+            canvas.height = BOARD_SIZE * CELL_SIZE;
+            updateUIState(); // Initial UI state
+            setupEventListeners();
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                showMessage("配置提醒 (Configuration Notice)", "请在代码中设置您的 Supabase URL 和 Anon Key 以启用远程对战功能。(Please set your Supabase URL and Anon Key in the code to enable remote play.)");
+                remoteModeBtn.disabled = true;
+            }
+        }
+
+        function setupEventListeners() {
+            localModeBtn.addEventListener('click', () => {
+                isLocalGame = true;
+                gameStatus = 'emoji_selection';
+                player2EmojiContainer.classList.remove('hidden');
+                player1EmojiHeader.textContent = "Player 1: ";
+                player2EmojiHeader.textContent = "Player 2: ";
+                setupEmojiSelectionUI();
+                updateUIState();
+            });
+            remoteModeBtn.addEventListener('click', () => {
+                isLocalGame = false;
+                gameStatus = 'emoji_selection';
+                player2EmojiContainer.classList.add('hidden'); // P2 emoji selected by opponent
+                player1EmojiHeader.textContent = "";
+                setupEmojiSelectionUI();
+                updateUIState();
+            });
+            confirmEmojiBtn.addEventListener('click', handleConfirmEmojis);
+            createRoomBtn.addEventListener('click', () => setupRemoteGame('create'));
+            joinRoomBtn.addEventListener('click', () => setupRemoteGame('join'));
+            canvas.addEventListener('click', handleBoardClick);
+            restartGameBtn.addEventListener('click', handleRestartClick);
+            backToMenuBtn.addEventListener('click', handleBackToMenu);
+            messageBoxOkBtn.addEventListener('click', () => messageBox.classList.add('hidden'));
+        }
+
+        function showMessage(title, text) {
+            messageBoxTitle.textContent = title;
+            messageBoxText.textContent = text;
+            messageBox.classList.remove('hidden');
+        }
+
+        function setupEmojiSelectionUI() {
+            selectedEmojis = { p1: null, p2: null }; // Reset selections
+            p1SelectedEmojiDisplay.textContent = '';
+            p2SelectedEmojiDisplay.textContent = '';
+            confirmEmojiBtn.disabled = true;
+
+            player1EmojisDiv.innerHTML = '';
+            player2EmojisDiv.innerHTML = '';
+
+            PRESET_EMOJIS.forEach(emoji => {
+                const btn1 = createEmojiButton(emoji, 1);
+                player1EmojisDiv.appendChild(btn1);
+
+                if (isLocalGame) {
+                    const btn2 = createEmojiButton(emoji, 2);
+                    player2EmojisDiv.appendChild(btn2);
+                }
+            });
+        }
+
+        function createEmojiButton(emoji, playerIndex) {
+            const btn = document.createElement('button');
+            btn.textContent = emoji;
+            btn.classList.add('emoji-btn');
+            btn.addEventListener('click', () => handleEmojiSelect(emoji, playerIndex, btn));
+            return btn;
+        }
+
+        function handleEmojiSelect(emoji, playerIndex, clickedBtn) {
+            // Deselect other buttons for the same player
+            const playerEmojiDiv = playerIndex === 1 ? player1EmojisDiv : player2EmojisDiv;
+            Array.from(playerEmojiDiv.children).forEach(child => child.classList.remove('selected'));
+
+            // Select the clicked button
+            clickedBtn.classList.add('selected');
+
+            if (playerIndex === 1) {
+                selectedEmojis.p1 = emoji;
+                p1SelectedEmojiDisplay.textContent = emoji;
+            } else if (isLocalGame && playerIndex === 2) {
+                selectedEmojis.p2 = emoji;
+                p2SelectedEmojiDisplay.textContent = emoji;
+            }
+
+            // Enable confirm button if selections are complete
+            if (isLocalGame) {
+                confirmEmojiBtn.disabled = !(selectedEmojis.p1 && selectedEmojis.p2);
+            } else { // Remote game, only P1 needs to select
+                confirmEmojiBtn.disabled = !selectedEmojis.p1;
+            }
+        }
+
+        function handleConfirmEmojis() {
+            playerEmojis[1] = selectedEmojis.p1;
+            if (isLocalGame) {
+                playerEmojis[2] = selectedEmojis.p2;
+                if (playerEmojis[1] === playerEmojis[2]) {
+                    showMessage("选择错误 (Selection Error)", "两位玩家不能选择相同的棋子。(Both players cannot choose the same piece.)");
+                    return;
+                }
+                setupLocalGame();
+            } else {
+                // For remote, P2 emoji will come from opponent. Use a placeholder if needed or wait.
+                // P1 has selected their emoji.
+                gameStatus = 'remote_setup';
+            }
+            updateUIState();
+        }
+
+
+       // --- Game Setup ---
+        function setupLocalGame() {
+            myPlayerId = null;
+            createEmptyBoard();
+            currentPlayer = Math.random() < 0.5 ? 1 : 2;
+            gameStatus = 'local_playing';
+            renderBoard();
+            updateUIState();
+        }
+
+        function setupRemoteGame(mode) { // mode: 'create' or 'join'
+            if (!selectedEmojis.p1) {
+                showMessage("错误 (Error)", "请先选择你的棋子。(Please select your piece first.)");
+                return;
+            }
+
+            if (!supabaseClient && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else if (!supabaseClient) {
+                showMessage("Supabase 错误 (Supabase Error)", "Supabase 未配置。(Supabase is not configured.)");
+                gameStatus = 'error';
+                updateUIState();
+                return;
+            }
+
+            const inputId = roomIdInput.value.trim();
+            if (mode === 'join' && !inputId) {
+                showMessage("错误 (Error)", "请输入房间ID以加入。(Please enter a Room ID to join.)");
+                return;
+            }
+            
+            // Use input ID if provided, otherwise generate one
+            remoteRoomId = inputId || generateUniqueRoomId();
+            if (!/^[A-Za-z0-9]{2,20}$/.test(remoteRoomId)) {
+                showMessage("错误 (Error)", "房间ID必须为4-8位字母数字组合。(Room ID must be 4-8 alphanumeric characters.)");
+                return;
+            }
+            roomIdDisplay.textContent = `房间ID (Room ID): ${remoteRoomId}`;
+            createEmptyBoard();
+            myPlayerId = (mode === 'create') ? 1 : 2; // Creator is P1, Joiner is P2
+            playerEmojis[myPlayerId] = selectedEmojis.p1; // Set my emoji
+
+            gameStatus = 'remote_waiting';
+            subscribeToRoom(remoteRoomId);
+            updateUIState();
+        }
+
+        function generateUniqueRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // --- Board Management ---
+        function createEmptyBoard() {
+            board = new Array(BOARD_SIZE).fill(0).map(() => new Array(BOARD_SIZE).fill(0));
+        }
+
+        function renderBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#a16207'; // Dark yellow for lines
+            ctx.lineWidth = 1;
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                // Vertical lines
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE + CELL_SIZE / 2, CELL_SIZE / 2);
+                ctx.lineTo(i * CELL_SIZE + CELL_SIZE / 2, canvas.height - CELL_SIZE / 2);
+                ctx.stroke();
+                // Horizontal lines
+                ctx.beginPath();
+                ctx.moveTo(CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+                ctx.lineTo(canvas.width - CELL_SIZE / 2, i * CELL_SIZE + CELL_SIZE / 2);
+                ctx.stroke();
+            }
+
+            // Draw star points (common in Gomoku boards)
+            const starPoints = [
+                { r: 3, c: 3 }, { r: 3, c: 9 }, { r: 3, c: 15 },
+                { r: 9, c: 3 }, { r: 9, c: 9 }, { r: 9, c: 15 },
+                { r: 15, c: 3 }, { r: 15, c: 9 }, { r: 15, c: 15 }
+            ];
+            ctx.fillStyle = '#a16207';
+            starPoints.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.c * CELL_SIZE + CELL_SIZE / 2, p.r * CELL_SIZE + CELL_SIZE / 2, DOT_RADIUS, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+
+            // Draw stones (emojis)
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const fontSize = CELL_SIZE * 0.8; // Adjust emoji size relative to cell
+            ctx.font = `${fontSize}px Arial`;
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] !== 0) {
+                        const player = board[r][c];
+                        const emoji = playerEmojis[player];
+                        if (emoji) {
+                            ctx.fillText(emoji, c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2);
+                        } else { // Fallback if emoji not set (e.g. opponent emoji not yet received)
+                            ctx.fillStyle = player === 1 ? 'black' : 'white';
+                            ctx.beginPath();
+                            ctx.arc(c * CELL_SIZE + CELL_SIZE / 2, r * CELL_SIZE + CELL_SIZE / 2, CELL_SIZE * STONE_RADIUS_FACTOR, 0, 2 * Math.PI);
+                            ctx.fill();
+                            if (player === 2) { // Add border to white stones for visibility
+                                ctx.strokeStyle = 'black';
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // --- UI Rendering ---
+        function updateUIState() {
+            // Hide all sections first
+            modeSelectionDiv.classList.add('hidden');
+            emojiSelectionDiv.classList.add('hidden');
+            remoteSetupDiv.classList.add('hidden');
+            gameAreaDiv.classList.add('hidden');
+            restartGameBtn.classList.remove('hidden'); // Usually visible in game or end states
+
+            let statusText = '';
+            let turnText = '';
+            let turnEmoji = '';
+
+            canvas.style.cursor = 'default'; // Default cursor
+
+            switch (gameStatus) {
+                case 'initial':
+                    modeSelectionDiv.classList.remove('hidden');
+                    statusText = "Select Game Mode";
+                    break;
+                case 'emoji_selection':
+                    emojiSelectionDiv.classList.remove('hidden');
+                    statusText = "Select Your Piece";
+                    break;
+                case 'local_playing':
+                    gameAreaDiv.classList.remove('hidden');
+                    statusText = `Local Play in Progress`;
+                    turnEmoji = playerEmojis[currentPlayer];
+                    turnText = `${turnEmoji} (Player ${currentPlayer}'s Turn)`;
+                    canvas.style.cursor = 'pointer';
+                    break;
+                case 'remote_setup':
+                    remoteSetupDiv.classList.remove('hidden');
+                    statusText = "Setup Remote Game";
+                    // roomIdDisplay.textContent = `房间ID: ${remoteRoomId || ''}`;
+                    break;
+                case 'remote_waiting':
+                    gameAreaDiv.classList.remove('hidden'); // Show board while waiting
+                    renderBoard(); // Render empty board
+                    statusText = `Waiting for opponent in Room ID: ${remoteRoomId}...`;
+                    turnText = "Please wait";
+                    restartGameBtn.textContent = "Cancel"; // Or "Leave Room"
+                    break;
+                case 'remote_playing':
+                    gameAreaDiv.classList.remove('hidden');
+                    statusText = `Remote Play with Room: ${remoteRoomId}`;
+                    turnEmoji = playerEmojis[currentPlayer];
+                    if (currentPlayer === myPlayerId) {
+                        turnText = `Your Turn: ${turnEmoji}`;
+                        canvas.style.cursor = 'pointer';
+                    } else {
+                        turnText = `Opponent's Turn: ${turnEmoji}`;
+                    }
+                    restartGameBtn.textContent = "Forfeit";
+                    break;
+                case 'win':
+                    gameAreaDiv.classList.remove('hidden');
+                    const winner = board.flat().find(p => p === 1 || p === 2); // Find who was last player
+                    const winningPlayer = currentPlayer; // The current player is the winner
+                    // 修正远程模式下获胜信息显示
+                    const winnerEmoji = playerEmojis[winningPlayer];
+                    statusText = `Player ${winnerEmoji} Wins!`;
+                    turnText = "Game Over";
+                    restartGameBtn.textContent = "RESTART";
+                    break;
+                case 'draw':
+                    gameAreaDiv.classList.remove('hidden');
+                    statusText = "It's a Draw!";
+                    turnText = "Game Over";
+                    restartGameBtn.textContent = "RESTART";
+                    break;
+                case 'opponent_left':
+                    gameAreaDiv.classList.remove('hidden');
+                    statusText = "对手已离开房间。(Opponent has left the room.)";
+                    turnText = "游戏结束 (Game Over)";
+                    break;
+                case 'error':
+                    // Keep current view, but show error message
+                    if (gameStatus === 'initial') modeSelectionDiv.classList.remove('hidden');
+                    else if (remoteSetupDiv) remoteSetupDiv.classList.remove('hidden');
+                    else gameAreaDiv.classList.remove('hidden');
+                    statusText = "An error occurred. Please try again.";
+                    // A more specific error might be shown via showMessage()
+                    break;
+            }
+            statusMessageEl.textContent = statusText;
+            turnIndicatorEl.innerHTML = `${turnText}`;
+        }
+
+
+        // --- Game Interaction (Click Handler) ---
+        function handleBoardClick(event) {
+            if (!((gameStatus === 'local_playing') || (gameStatus === 'remote_playing' && currentPlayer === myPlayerId))) {
+                return; // Not playable state or not my turn
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+
+            const col = Math.floor(x / CELL_SIZE);
+            const row = Math.floor(y / CELL_SIZE);
+
+            if (isValidMove(row, col)) {
+                if (gameStatus === 'local_playing') {
+                    makeMove(row, col, currentPlayer);
+                    if (checkWinOrDraw(row, col)) return; // Game ended
+                    switchTurn();
+                } else if (gameStatus === 'remote_playing' && currentPlayer === myPlayerId) {
+                    // Optimistically make move locally, then send
+                    makeMove(row, col, myPlayerId); // Make move with myPlayerId
+                    const moveData = { row, col, player: myPlayerId, emoji: playerEmojis[myPlayerId] };
+                    sendMoveToSupabase(remoteRoomId, moveData);
+                    if (checkWinOrDraw(row, col)) return; // Game ended by my move
+                    switchTurn(); // Switch turn locally, expecting opponent's move
+                }
+                renderBoard();
+                updateUIState();
+            }
+        }
+
+        function isValidMove(row, col) {
+            return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === 0;
+        }
+
+        // --- Game Logic ---
+        function makeMove(row, col, player) {
+            board[row][col] = player;
+            // Last move highlighting (optional, simple version: just re-render)
+            // For a more specific highlight, you'd store lastMove = {row, col} and draw differently in renderBoard
+        }
+
+        function checkWinOrDraw(lastRow, lastCol) {
+            const player = board[lastRow][lastCol];
+            if (checkFiveInARow(lastRow, lastCol, player)) {
+                gameStatus = 'win';
+                updateUIState();
+                renderBoard(); // Re-render to show final board state
+                // 确保在远程模式下正确显示获胜玩家的表情符号
+                const winnerEmoji = playerEmojis[player];
+                showMessage("游戏结束 (Game Over)", `${winnerEmoji} 胜利! (Player ${winnerEmoji} Wins!)`);
+                return true;
+            }
+            if (isBoardFull()) {
+                gameStatus = 'draw';
+                updateUIState();
+                renderBoard();
+                showMessage("游戏结束 (Game Over)", "平局! (It's a Draw!)");
+                return true;
+            }
+            return false;
+        }
+
+        function checkFiveInARow(r, c, player) {
+            const directions = [
+                { dr: 0, dc: 1 },  // Horizontal
+                { dr: 1, dc: 0 },  // Vertical
+                { dr: 1, dc: 1 },  // Diagonal \
+                { dr: 1, dc: -1 }  // Diagonal /
+            ];
+
+            for (const { dr, dc } of directions) {
+                let count = 1; // Count the stone just placed
+
+                // Check in positive direction
+                for (let i = 1; i < 5; i++) {
+                    const nr = r + dr * i;
+                    const nc = c + dc * i;
+                    if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === player) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Check in negative direction
+                for (let i = 1; i < 5; i++) {
+                    const nr = r - dr * i;
+                    const nc = c - dc * i;
+                    if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE && board[nr][nc] === player) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
+        function isBoardFull() {
+            return board.every(row => row.every(cell => cell !== 0));
+        }
+
+        function switchTurn() {
+            currentPlayer = (currentPlayer === 1) ? 2 : 1;
+        }
+
+        // --- Remote Mode Logic (Supabase) ---
+        function setupSupabaseIfNeeded() {
+            if (!supabaseClient && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+                try {
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                } catch (error) {
+                    console.error("Supabase client creation error:", error);
+                    showMessage("Supabase 错误 (Supabase Error)", "无法连接到 Supabase 服务。(Could not connect to Supabase.)");
+                    gameStatus = 'error';
+                    updateUIState();
+                    return false;
+                }
+            } else if (!supabaseClient) {
+                showMessage("Supabase 错误 (Supabase Error)", "Supabase 未配置。(Supabase is not configured.)");
+                gameStatus = 'error';
+                updateUIState();
+                return false;
+            }
+            return true;
+        }
+
+
+        async function subscribeToRoom(roomId) {
+            if (!setupSupabaseIfNeeded()) return;
+
+            if (realtimeChannel) {
+                await realtimeChannel.unsubscribe().catch(console.error);
+                realtimeChannel = null;
+            }
+
+            realtimeChannel = supabaseClient.channel(`room-${roomId}`, {
+                config: {
+                    presence: { key: `player-${myPlayerId}-${Date.now()}` } // Unique key for presence
+                }
+            });
+
+            realtimeChannel
+                .on('presence', { event: 'sync' }, () => {
+                    const presenceState = realtimeChannel.presenceState();
+                    const presentPlayerKeys = Object.keys(presenceState);
+                    const numPlayers = presentPlayerKeys.length;
+                    console.log("Presence sync:", numPlayers, "players online.", presentPlayerKeys);
+
+                    if (gameStatus === 'remote_waiting' && numPlayers >= 2) {
+                        // Try to identify if both P1 and P2 are present
+                        const playerIdsInRoom = new Set();
+                        presentPlayerKeys.forEach(key => {
+                            const parts = key.split('-');
+                            if (parts.length > 1 && (parts[1] === '1' || parts[1] === '2')) {
+                                playerIdsInRoom.add(parseInt(parts[1]));
+                            }
+                        });
+
+                        if (playerIdsInRoom.has(1) && playerIdsInRoom.has(2)) {
+                            gameStatus = 'remote_playing';
+                            currentPlayer = 1; // Player 1 always starts in remote games for simplicity
+                            renderBoard(); // Render board before updating UI
+                            updateUIState();
+                            showMessage("Game Start", "Opponent joined! Game starts.");
+                            console.log("Opponent joined! Game started.");
+                            // If I am P1 and P2 just joined, P2 might have sent their emoji
+                            // If I am P2 and just joined, P1 might have sent their emoji
+                        }
+
+                    } else if (gameStatus === 'remote_playing' && numPlayers < 2) {
+                        // Check if the *other* player specifically left
+                        const otherPlayerId = myPlayerId === 1 ? 2 : 1;
+                        const otherPlayerPresent = presentPlayerKeys.some(key => key.startsWith(`player-${otherPlayerId}`));
+                        if (!otherPlayerPresent) {
+                            handleOpponentLeave();
+                        }
+                    }
+                })
+                .on('presence', { event: 'join' }, ({ newPresences }) => {
+                    console.log('Player joined:', newPresences);
+                    // When a player joins, if I am already in the room, I send my info.
+                    // The new player will also send their info upon successful subscription.
+                    if (myPlayerId && selectedEmojis.p1) { // selectedEmojis.p1 is my emoji
+                        sendPlayerInfo(roomId, { playerId: myPlayerId, emoji: playerEmojis[myPlayerId] });
+                    }
+                })
+                .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+                    console.log('Player left:', leftPresences);
+                    // Check if the leaver was the opponent
+                    const otherPlayerId = myPlayerId === 1 ? 2 : 1;
+                    if (leftPresences.some(p => p.key && p.key.startsWith(`player-${otherPlayerId}`))) {
+                        handleOpponentLeave();
+                    }
+                })
+                .on('broadcast', { event: 'move' }, (message) => {
+                    handleReceivedMove(message.payload);
+                })
+                .on('broadcast', { event: 'player_info' }, (message) => {
+                    const info = message.payload;
+                    console.log("Received player_info:", info);
+                    if (info.playerId && info.playerId !== myPlayerId && info.emoji) {
+                        playerEmojis[info.playerId] = info.emoji;
+                        console.log(`Set player ${info.playerId} emoji to ${info.emoji}`);
+                        if (gameStatus === 'remote_playing' || gameStatus === 'remote_waiting') {
+                            renderBoard(); // Re-render if board is visible and opponent emoji updated
+                            updateUIState(); // Update turn indicator if it shows emoji
+                        }
+                    }
+                })
+                .on('broadcast', { event: 'restart_request' }, (message) => {
+                    if (message.payload.requestingPlayer !== myPlayerId) {
+                        // For now, auto-accept restart for simplicity. Could add a confirmation dialog.
+                        showMessage("Restart", "Opponent requested a game restart.");
+                        resetGameForRemote();
+                    }
+                })
+            realtimeChannel.on('broadcast', { event: 'restart_game' }, (event) => {
+                console.log("Received restart_game event with payload:", event.payload);
+                // Use the starting player sent by the initiating client
+                if (event.payload && event.payload.startingPlayer) {
+                    resetGameForRemote(event.payload.startingPlayer);
+                } else {
+                    // Fallback if payload is missing
+                    const startingPlayer = Math.random() < 0.5 ? 1 : 2;
+                    resetGameForRemote(startingPlayer);
+                }
+            })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log(`Successfully subscribed to room: ${roomId}`);
+                        await realtimeChannel.track({
+                            online_at: new Date().toISOString(),
+                            player_id_for_presence: myPlayerId // Track my player ID for presence logic
+                        });
+                        // Send my player info (emoji)
+                        if (myPlayerId && playerEmojis[myPlayerId]) {
+                            sendPlayerInfo(roomId, { playerId: myPlayerId, emoji: playerEmojis[myPlayerId] });
+                        }
+                        if (myPlayerId === 1 && gameStatus === 'remote_waiting') {
+                            // Creator (P1) is waiting.
+                            statusMessageEl.textContent = `Waiting for opponent in Room ID: ${remoteRoomId}...`;
+                        } else if (myPlayerId === 2 && gameStatus === 'remote_waiting') {
+                            // Joiner (P2) has subscribed. Presence sync should handle game start.
+                            statusMessageEl.textContent = `Joined room ${remoteRoomId}. Waiting for game to start...`;
+                        }
+
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error("Supabase Channel Error for room:", roomId);
+                        showMessage("Connection Error", `Failed to connect to room ${roomId}.`);
+                        gameStatus = 'error';
+                        updateUIState();
+                    } else if (status === 'TIMED_OUT') {
+                        console.error("Supabase Channel Timed Out for room:", roomId);
+                        showMessage("Connection Timeout", `Connection to room ${roomId} timed out.`);
+                        gameStatus = 'error';
+                        updateUIState();
+                    } else {
+                        console.log("Supabase channel status:", status);
+                    }
+                });
+        }
+
+        function sendMoveToSupabase(roomId, moveData) {
+            if (realtimeChannel) {
+                realtimeChannel.send({
+                    type: 'broadcast',
+                    event: 'move',
+                    payload: moveData
+                }).catch(err => {
+                    console.error("Error sending move:", err);
+                    showMessage("发送错误 (Send Error)", "发送移动失败，请检查网络。(Failed to send move, check network.)");
+                    // Potentially revert optimistic move or offer retry
+                });
+                console.log("Sent move:", moveData);
+            }
+        }
+
+        function handleReceivedMove(payload) { // payload = { row, col, player, emoji }
+            console.log("Handling received move:", payload);
+            if (gameStatus !== 'remote_playing') {
+                console.warn("Received move but game not in remote_playing state. Ignoring.");
+                return;
+            }
+            if (payload.player === myPlayerId) {
+                console.warn("Received my own move back. Ignoring.");
+                return;
+            }
+            if (payload.player !== currentPlayer) {
+                console.warn(`Received move from player ${payload.player}, but current turn is ${currentPlayer}. Possible sync issue. Ignoring.`);
+                return;
+            }
+
+            // Update opponent's emoji if it wasn't set or changed
+            if (payload.emoji && playerEmojis[payload.player] !== payload.emoji) {
+                playerEmojis[payload.player] = payload.emoji;
+            }
+
+            if (isValidMove(payload.row, payload.col)) {
+                makeMove(payload.row, payload.col, payload.player);
+                renderBoard();
+                if (checkWinOrDraw(payload.row, payload.col)) return; // Game ended
+                switchTurn(); // Switch to my turn
+                updateUIState();
+            } else {
+                console.warn("Received invalid move from opponent (cell not empty or out of bounds).", payload);
+                // This could indicate a desync. For simplicity, we ignore.
+                // A more robust system might request a state resync.
+            }
+        }
+
+        function handleOpponentLeave() {
+            if (gameStatus === 'remote_playing' || gameStatus === 'remote_waiting') {
+                console.log("Opponent left.");
+                gameStatus = 'opponent_left';
+                if (realtimeChannel) {
+                    realtimeChannel.unsubscribe().catch(console.error);
+                    realtimeChannel = null;
+                }
+                updateUIState();
+                showMessage("Opponent Left", "Your opponent has left the game.");
+            }
+        }
+
+        function sendPlayerInfo(roomId, info) { // { playerId, emoji }
+            if (realtimeChannel) {
+                realtimeChannel.send({
+                    type: 'broadcast',
+                    event: 'player_info',
+                    payload: info
+                }).catch(err => console.error("Error sending player info:", err));
+                console.log("Sent player_info:", info);
+            }
+        }
+
+        function sendRestartRequest() {
+            if (realtimeChannel && myPlayerId) {
+                realtimeChannel.send({
+                    type: 'broadcast',
+                    event: 'restart_request',
+                    payload: { requestingPlayer: myPlayerId }
+                }).catch(err => console.error("Error sending restart request:", err));
+                showMessage("请求已发送 (Request Sent)", "已发送重新开始请求。(Restart request sent.)");
+                // Optionally, wait for an 'accept_restart' broadcast or handle via presence/new game setup
+            }
+        }
+
+        // --- Game Controls ---
+        function handleRestartClick() {
+            if (isLocalGame) {
+                setupLocalGame(); // For local, just restart
+            } else if (gameStatus.startsWith('remote_')) {
+                if (gameStatus === 'win' || gameStatus === 'draw') {
+                    if (realtimeChannel && realtimeChannel.state === 'joined') {
+                        // Generate a random starting player that will be used by both clients
+                        const startingPlayer = Math.random() < 0.5 ? 1 : 2;
+                        realtimeChannel.send({
+                            type: 'broadcast',
+                            event: 'restart_game',
+                            payload: { startingPlayer: startingPlayer }
+                        }).then(() => {
+                            showMessage("请求已发送 (Request Sent)", "已发送重新开始请求。游戏将自动重置。(Restart request sent. The game will reset automatically.)");
+                            // Restart the game locally immediately with the same starting player
+                            resetGameForRemote(startingPlayer);
+                        }).catch(err => {
+                            console.error("Error sending restart_game event:", err);
+                            showMessage("错误 (Error)", "发送重新开始请求失败。对方可能已断开连接。(Failed to send restart request. Opponent might be disconnected.)");
+                            handleOpponentLeave();
+                            handleBackToMenu();
+                        });
+                    } else {
+                        showMessage("对方已离开 (Opponent Left)", "对方已断开连接，无法重新开始。将返回主菜单。(Opponent disconnected, cannot restart. Returning to menu.)");
+                        handleOpponentLeave();
+                        handleBackToMenu();
+                    }
+                } else if (gameStatus === 'opponent_left') {
+                    showMessage("对方已离开 (Opponent Left)", "对方已离开，无法在此房间重新开始。将返回主菜单。(Opponent has left, cannot restart in this room. Returning to menu.)");
+                    handleBackToMenu();
+                } else if (gameStatus === 'remote_playing' || gameStatus === 'remote_waiting') {
+                    // This button might mean "Forfeit" or "Cancel Waiting"
+                    // Forfeiting:
+                    showMessage("Forfeit", "You have forfeited the match.");
+                    handleOpponentLeave(); // Simulate self-leaving for cleanup
+                    handleBackToMenu(); // Go back to menu
+                }
+            } else { // e.g. initial, emoji_selection, remote_setup
+                handleBackToMenu(); // Default to back to menu if state is unclear for restart
+            }
+        }
+
+        function resetGameForRemote(startingPlayer) {
+            createEmptyBoard();
+            // If no starting player is provided, randomly select one
+            if (startingPlayer === undefined) {
+                startingPlayer = Math.random() < 0.5 ? 1 : 2;
+            }
+            currentPlayer = startingPlayer;
+            // Keep the current room and connection active
+            gameStatus = 'remote_playing';
+            renderBoard();
+            updateUIState(); // This will update the turn display based on the new currentPlayer
+            console.log(`Game reset. Current player is now: ${currentPlayer}`);
+            // Show a message about the game being restarted
+            const turnEmoji = playerEmojis[currentPlayer];
+            const turnMessage = currentPlayer === myPlayerId ? 
+                `Your Turn: ${turnEmoji}` : 
+                `Opponent's Turn: ${turnEmoji}`;
+            showMessage("游戏已重置 (Game Reset)", `新局开始！${turnMessage} (New game started! ${turnMessage})`);
+        }
+
+        // Handle restart game message from opponent
+        function handleRestartMessage() {
+            createEmptyBoard();
+            currentPlayer = myPlayerId === 1 ? 2 : 1;
+            gameStatus = 'remote_playing';
+            renderBoard();
+            updateUIState();
+            showMessage("游戏重置", "对手请求重新开始游戏。");
+        }
+
+
+        function handleBackToMenu() {
+            if (realtimeChannel) {
+                realtimeChannel.unsubscribe().catch(console.error);
+                realtimeChannel = null;
+            }
+            createEmptyBoard(); // Clear board visually
+            gameStatus = 'initial';
+            selectedEmojis = { p1: null, p2: null };
+            currentPlayer = 1;
+            myPlayerId = null;
+            remoteRoomId = null;
+            roomIdInput.value = '';
+            roomIdDisplay.textContent = '';
+            renderBoard(); // Clear canvas
+            updateUIState();
+        }
+
+        // --- Initial App Load ---
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+
+</html>
